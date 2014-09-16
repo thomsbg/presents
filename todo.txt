@@ -1,0 +1,66 @@
+track users + rooms
+
+session -> uid: socket.set
+room -> users: redis set
+user -> rooms: redis set
+uid -> user: redis hash
+uid -> timeout: obj
+
+io.on 'connection', function(socket)
+  socket.on('message', seen)
+  socket.on('identify', identify)
+  socket.on('join', join)
+  socket.on('leave', leave)
+  socket.on('disconnect', disconnect)
+
+---
+events
+
+identify(socket, user)
+  socket.set('uid', user.id)
+  hset user:user.id user
+
+join(socket, room)
+  user = user(socket)
+  if associate(user, room)
+    room.broadcast 'join', user
+
+leave(socket, room)
+  user = user(socket)
+  if disassociate(user, room)
+    room.broadcast 'leave', user
+
+disconnect(socket)
+  timeout = setTimeout 30s
+    delete timeouts[user.id]
+    user = user(socket)
+    for each room in rooms(user)
+      leave(user, room)
+  timeouts[user.id] = timeout
+
+---
+helpers
+
+user(socket)
+  uid = socket.get('uid')
+  hget user:uid
+
+associate(user, room)
+  sadd r2u:room user.id
+  return sadd u2r:user.id room
+
+disassociate(user, room)
+  removed = srem u2r:user.id room
+  srem r2u:room user.id
+  if scard u2r:user.id == 0
+    hdel user:user.id
+  return removed
+
+rooms(user)
+  smembers u2r:user.id
+
+seen(user)
+  timeout = timeouts[user.id]
+  if timeout
+    clearTimeout(timeout)
+    delete timeouts[user.id]

@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+  <h1>Presents!</h1>
+  <ul id="users">
+  </ul>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/client.js"></script>
+  <script>
+    var user = {
+      id: Math.floor(Math.random() * 100),
+      name: 'blake'
+    };
+    var presents = require('./client')(user);
+    console.log('joining as', user.id);
+    presents.join('testroom', function(users) {
+      console.log('joined', users);
+    });
+    presents.leave('testroom', function(users) {
+      console.log('left', users);
+    });
+  </script>
+</body>
+</html>
